@@ -47,12 +47,15 @@ targets:
         linkerScriptPath: Ld/Link.ld
         options:
           version: 2
-          afterBuildTasks: []
+          afterBuildTasks:
+            - name: clangd-task
+              abortAfterFailed: true
+              command: bash -c "cp build/${ConfigName}/compile_commands.json build/compile_commands.json"
+              disable: true
           asm-compiler:
             ASM_FLAGS: -Wl,-Bstatic
           beforeBuildTasks: []
           c/cpp-compiler:
-            CXX_FLAGS: ""
             C_FLAGS: -Wl,-Bstatic
             language-c: gnu99
             language-cpp: c++11
@@ -65,16 +68,12 @@ targets:
             abi: ilp32
             arch: rv32imac
             code-model: medlow
-            misc-control:
-              - -fmessage-length=0
-              - -Wunused
-              - -Wuninitialised
-              - -msave-restore
-              - -fno-common
+            misc-control: -fmessage-length=0 -Wunused -Wuninitialized -msave-restore -fno-common
             output-debug-info: enable
           linker:
             $outputTaskExcludes:
               - .bin
+            $toolName: auto
             LD_FLAGS: -nostartfiles --specs=nano.specs --specs=nosys.specs
             LIB_FLAGS: -lm
             output-format: elf
