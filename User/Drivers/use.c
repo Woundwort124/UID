@@ -7,8 +7,10 @@
 #include "use.h"
 #include "fc_core.h"
 
+/*---------------------------*/
 extern cmd_t g_cmd;	     // 上位机指令 (串口解析后写入)
 extern motor_cmd_t g_motors; // 飞控输出
+/*---------------------------*/
 
 #define RXBUF_SIZE 1024
 u8 RxBuffer[RXBUF_SIZE] = {0}; // 接收缓冲区
@@ -24,7 +26,7 @@ xQueueHandle xDataQueue;
 uint8_t i2c_addr = 0X2C;
 uint8_t res = 0x80;
 u16 ir, als, ps;
-
+/*---------------------------*/
 static uint8_t crc8(const uint8_t *data, uint8_t len)
 {
 	uint8_t crc = 0;
@@ -50,7 +52,7 @@ void fc_send_attitude(const attitude_t *att)
 	tx_buf[16] = crc8(&tx_buf[2], 14); /* CRC 覆盖 LEN+TYPE+PAYLOAD */
 	USART2_DMA_Start(tx_buf, 17);
 }
-
+/*---------------------------*/
 void GPIO_Toggle_INIT(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure = {0};
@@ -108,7 +110,7 @@ void init1() // 初始化加速度计和磁力计
 	// end QMC7983
 
 	/* Read samples in polling mode (no int) */
-
+	/*---------------------------*/
 	fc_config_t fc_fcg = {
 		.madgwick = 0.1f,
 		.pid_roll_kp = 1.0f,
@@ -126,6 +128,7 @@ void init1() // 初始化加速度计和磁力计
 	};
 
 	fc_init(&fc_fcg);
+	/*---------------------------*/
 }
 
 void get1_task(void *pvParameters) // 采集任务
@@ -177,7 +180,7 @@ void get1_task(void *pvParameters) // 采集任务
 		xToSend.mag[0] = mag_lsb[0];
 		xToSend.mag[1] = mag_lsb[1];
 		xToSend.mag[2] = mag_lsb[2];
-
+		/*-----------------------------------------------------------------------------------*/
 		imu_data_t imu;
 		imu.accel[0] = acc_mg[0] * 0.00981f; // mg → m/s? */
 		imu.accel[1] = acc_mg[1] * 0.00981f;
@@ -198,7 +201,7 @@ void get1_task(void *pvParameters) // 采集任务
 		attitude_t att;
 		fc_get_attitude(&att);
 		fc_send_attitude(&att);
-
+		/*-------------------------------------------------------------------------------*/
 		// 5. 发送到队列
 		// 使用 pdMS_TO_TICKS(10) 防止队列满时卡死太久
 		if (xQueueSend(xDataQueue, &xToSend, pdMS_TO_TICKS(10)) != pdPASS) {
