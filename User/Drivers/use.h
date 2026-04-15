@@ -15,6 +15,7 @@
 #include "MPU6050.h"
 #include "QMI8658.h"
 #include "debug.h"
+#include "fc_core.h"
 #include "lcd.h"
 #include "queue.h"
 
@@ -24,6 +25,8 @@ void vTask_Display(void *pvParameters);
 void task1(void *pvParameters);
 void DMA_INIT(void);
 void USART2_DMA_CFG(void);
+void USART2_DMA_Start(uint8_t *data, uint16_t len);
+void fc_send_attitude(const attitude_t *att);
 extern xQueueHandle xDataQueue;
 
 // 在 main.h 或 sensor.h 中统一定义

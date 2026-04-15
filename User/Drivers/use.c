@@ -5,6 +5,10 @@
  *      Author: 213516
  */
 #include "use.h"
+#include "fc_core.h"
+
+extern cmd_t g_cmd;	     // 上位机指令 (串口解析后写入)
+extern motor_cmd_t g_motors; // 飞控输出
 
 #define RXBUF_SIZE 1024
 u8 RxBuffer[RXBUF_SIZE] = {0}; // 接收缓冲区
@@ -20,6 +24,33 @@ xQueueHandle xDataQueue;
 uint8_t i2c_addr = 0X2C;
 uint8_t res = 0x80;
 u16 ir, als, ps;
+
+static uint8_t crc8(const uint8_t *data, uint8_t len)
+{
+	uint8_t crc = 0;
+	for (uint8_t i = 0; i < len; i++) {
+		crc ^= data[i];
+		for (uint8_t j = 0; j < 8; j++)
+			crc = (crc & 0x80) ? (crc << 1) ^ 0x07 : (crc << 1);
+	}
+	return crc;
+}
+
+static uint8_t tx_buf[17];
+
+void fc_send_attitude(const attitude_t *att)
+{
+	tx_buf[0] = 0xAA;
+	tx_buf[1] = 0x55;
+	tx_buf[2] = 12;
+	tx_buf[3] = 0x02;
+	memcpy(&tx_buf[4], &att->roll, 4);
+	memcpy(&tx_buf[8], &att->pitch, 4);
+	memcpy(&tx_buf[12], &att->yaw, 4);
+	tx_buf[16] = crc8(&tx_buf[2], 14); /* CRC 覆盖 LEN+TYPE+PAYLOAD */
+	USART2_DMA_Start(tx_buf, 17);
+}
+
 void GPIO_Toggle_INIT(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure = {0};
@@ -77,6 +108,24 @@ void init1() // 初始化加速度计和磁力计
 	// end QMC7983
 
 	/* Read samples in polling mode (no int) */
+
+	fc_config_t fc_fcg = {
+		.madgwick = 0.1f,
+		.pid_roll_kp = 1.0f,
+		.pid_roll_ki = 0.0f,
+		.pid_roll_kd = 0.0f,
+		.pid_pitch_kp = 1.0f,
+		.pid_pitch_ki = 0.0f,
+		.pid_pitch_kd = 0.0f,
+		.pid_yaw_kp = 1.0f,
+		.pid_yaw_ki = 0.0f,
+		.pid_yaw_kd = 0.0f,
+		.pid_rate_kp = 0.5f,
+		.pid_rate_ki = 0.0f,
+		.pid_rate_kd = 0.0f,
+	};
+
+	fc_init(&fc_fcg);
 }
 
 void get1_task(void *pvParameters) // 采集任务
@@ -128,6 +177,27 @@ void get1_task(void *pvParameters) // 采集任务
 		xToSend.mag[0] = mag_lsb[0];
 		xToSend.mag[1] = mag_lsb[1];
 		xToSend.mag[2] = mag_lsb[2];
+
+		imu_data_t imu;
+		imu.accel[0] = acc_mg[0] * 0.00981f; // mg → m/s? */
+		imu.accel[1] = acc_mg[1] * 0.00981f;
+		imu.accel[2] = acc_mg[2] * 0.00981f;
+		imu.gyro[0] = gyro_mdps[0] * 0.000017453f; // mdps → rad/s */
+		imu.gyro[1] = gyro_mdps[1] * 0.000017453f;
+		imu.gyro[2] = gyro_mdps[2] * 0.000017453f;
+		imu.timestamp_us = 0;
+
+		mag_data_t mag;
+		mag.mag[0] = (float)mag_lsb[0];
+		mag.mag[1] = (float)mag_lsb[1];
+		mag.mag[2] = (float)mag_lsb[2];
+		mag.updated = (emm_status & 0x01) ? 1 : 0;
+
+		fc_update(&imu, &mag, &g_cmd, 0.02f, &g_motors);
+
+		attitude_t att;
+		fc_get_attitude(&att);
+		fc_send_attitude(&att);
 
 		// 5. 发送到队列
 		// 使用 pdMS_TO_TICKS(10) 防止队列满时卡死太久
