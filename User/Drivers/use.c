@@ -10,6 +10,16 @@
 /*---------------------------*/
 extern cmd_t g_cmd;	     // 上位机指令 (串口解析后写入)
 extern motor_cmd_t g_motors; // 飞控输出
+
+cmd_t g_cmd = {
+	.roll_sp = 0.0f,
+	.pitch_sp = 0.0f,
+	.yaw_rate_sp = 0.0f,
+	.throttle = 0.3f,
+	.armed = 0
+};
+
+motor_cmd_t g_motors = {0};
 /*---------------------------*/
 
 #define RXBUF_SIZE 1024
