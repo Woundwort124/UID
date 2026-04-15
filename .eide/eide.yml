@@ -11,6 +11,8 @@ srcDirs:
   - Peripheral
   - Startup
   - User
+  - User/FC
+  - User/Drivers
 virtualFolder:
   name: <virtual_root>
   files: []
@@ -34,6 +36,8 @@ targets:
         - FreeRTOS/portable/GCC/RISC-V
         - FreeRTOS/portable/GCC/RISC-V/chip_specific_extensions/RV32I_PFIC_no_extensions
         - FreeRTOS/portable/MemMang
+        - User/Drivers
+        - User/FC
       libList: []
     excludeList:
       - FreeRTOS/portable/Common/mpu_wrappers.c
