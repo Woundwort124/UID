@@ -19,6 +19,8 @@
 #include "lcd.h"
 #include "queue.h"
 
+#include "semphr.h"
+
 void init1(void);
 void get1_task(void *pvParameters);
 void vTask_Display(void *pvParameters);

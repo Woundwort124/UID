@@ -361,3 +361,61 @@ void __attribute__((interrupt("WCH-Interrupt-fast"))) DMA1_Channel7_IRQHandler(v
 		g_dma_tx_complete = 1; // 发送完成，标志位置 1
 	}
 }
+
+/* ---------------------------------------------------------------------------------------
+static SemaphoreHandle_t s_dma_tx_sem;
+
+void DMA_INIT(void)
+{
+	DMA_InitTypeDef DMA_InitStructure;
+
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
+
+	DMA_DeInit(DMA1_Channel7);
+	DMA_InitStructure.DMA_PeripheralBaseAddr = (u32)(&USART2->DATAR);
+	DMA_InitStructure.DMA_MemoryBaseAddr = 0;
+	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
+	DMA_InitStructure.DMA_BufferSize = 0;
+	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+	DMA_InitStructure.DMA_Priority = DMA_Priority_VeryHigh;
+	DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
+	DMA_Init(DMA1_Channel7, &DMA_InitStructure);
+
+	DMA_DeInit(DMA1_Channel6);
+	DMA_InitStructure.DMA_PeripheralBaseAddr = (u32)(&USART2->DATAR);
+	DMA_InitStructure.DMA_MemoryBaseAddr = (u32)RxBuffer;
+	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+	DMA_InitStructure.DMA_BufferSize = RXBUF_SIZE;
+	DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
+	DMA_Init(DMA1_Channel6, &DMA_InitStructure);
+
+	s_dma_tx_sem = xSemaphoreCreateBinary();
+	xSemaphoreGive(s_dma_tx_sem);
+}
+
+void USART2_DMA_Start(uint8_t *data, uint16_t len)
+{
+	if (xSemaphoreTake(s_dma_tx_sem, pdMS_TO_TICKS(50)) != pdTRUE)
+		return;
+
+	DMA_ClearITPendingBit(DMA1_FLAG_TC7);
+	DMA1_Channel7->MADDR = (uint32_t)data;
+	DMA1_Channel7->CNTR = len;
+	DMA_Cmd(DMA1_Channel7, ENABLE);
+}
+
+void __attribute__((interrupt("WCH-Interrupt-fast"))) DMA1_Channel7_IRQHandler(void)
+{
+	if (DMA_GetITStatus(DMA1_FLAG_TC7) != RESET) {
+		DMA_ClearITPendingBit(DMA1_FLAG_TC7);
+
+		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+		xSemaphoreGiveFromISR(s_dma_tx_sem, &xHigherPriorityTaskWoken);
+		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	}
+}
+-----------------------------------------------------------------------------------------*/
