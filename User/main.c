@@ -24,7 +24,7 @@
 #include "queue.h"
 #include "task.h"
 #include "use.h"
-
+#include "dshot.h"
 /* Global define */
 
 /* Global Variable */
@@ -46,7 +46,7 @@ int main(void)
 	Delay_Init();
 	USART_Printf_Init(115200);
 	DMA_INIT();
-	USART2_DMA_CFG();
+	dshot_init();
 
 	// 3. 开启 DMA 发送中断
 	NVIC_EnableIRQ(DMA1_Channel7_IRQn);
